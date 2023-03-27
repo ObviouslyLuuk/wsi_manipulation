@@ -151,3 +151,63 @@ def get_align_transform(wsi1, wsi2, outline1, outline2, spacing=2.0, n_features=
     ])
     return (correction_post @ transform @ correction_pre)[:2], message, np.linalg.det(transform[:2,:2])
     
+
+"""Detect whether the bounding box is still covered by the warped image"""
+
+def get_warped_corners(img, homography_matrix):
+    # Get the dimensions of the image
+    height, width = img.shape[:2]
+
+    # Get the corners of the original image
+    corners = np.array([[0, 0], [0, height], [width, height], [width, 0]], dtype=np.float32)
+
+    # Transform the corners of the original image to the warped image
+    warped_corners = cv2.perspectiveTransform(corners.reshape(-1, 1, 2), homography_matrix).reshape(-1, 2)
+
+    return warped_corners
+
+
+def covers_bounding_box(img, homography_matrix, bounding_box_size):
+    # Get the dimensions of the image
+    height, width = img.shape[:2]
+    
+    # Check if the bounding box is still covered by the warped image
+    # Get the corners of the warped image
+    warped_corners = get_warped_corners(img, homography_matrix)
+
+    # Get the corners of the bounding box
+    central_w, central_h = bounding_box_size
+    central_x = (width - central_w) // 2
+    central_y = (height - central_h) // 2
+    bb_corners = [(central_x, central_y), (central_x, central_y + central_h),
+                (central_x + central_w, central_y + central_h), (central_x + central_w, central_y)]
+    
+    # Get the edges of the bounding box and warped image
+    bb_edges = [(bb_corners[i], bb_corners[(i + 1) % 4]) for i in range(4)]
+    wc_edges = [(warped_corners[i], warped_corners[(i + 1) % 4]) for i in range(4)]
+
+    # Check if any of the bounding box edges intersect with any of the warped image edges
+    if all(not intersect(e1, e2) for e1 in bb_edges for e2 in wc_edges):
+        # Check if the center of the bounding box is inside the warped image
+        return cv2.pointPolygonTest(warped_corners, (central_x + central_w // 2, central_y + central_h // 2), False) >= 0
+    return False
+
+
+def intersect(l1, l2):
+    x1, y1 = l1[0]
+    x2, y2 = l1[1]
+    x3, y3 = l2[0]
+    x4, y4 = l2[1]
+
+    # Check if the lines are parallel
+    # den is the denominator of ua and ub
+    den = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1)
+    if den == 0:
+        return False
+    
+    # Check if the lines intersect
+    ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / den
+    ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / den
+
+    # Check if the intersection is within the line segments
+    return 0 <= ua <= 1 and 0 <= ub <= 1
