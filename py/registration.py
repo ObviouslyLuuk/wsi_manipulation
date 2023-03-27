@@ -118,11 +118,11 @@ def align(patch1, patch2, n_features=5000, warp="affine"):
                             transform, (width, height)), message, determinant
 
 
-def get_align_transform(wsi1, wsi2, outline1, outline2, spacing=2.0, n_features=5000, plotting=False):
+def get_align_transform(wsi1, wsi2, outline1, outline2, spacing=2.0, n_features=5000, warp="affine", plotting=False):
     patch1 = get_patch(wsi1, outline1, spacing)
     patch2 = get_patch(wsi2, outline2, spacing)
 
-    transform, message = get_transformation_matrix(patch1, patch2, n_features, plotting=plotting)
+    transform, message = get_transformation_matrix(patch1, patch2, n_features, warp, plotting=plotting)
 
     if transform.shape[0] == 2:
         transform = np.concatenate([transform, np.array([[0,0,1]])])

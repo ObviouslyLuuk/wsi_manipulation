@@ -4,8 +4,8 @@ from wholeslidedata.annotation.structures import Polygon
 
 ROOT = r'L:\\basic\\divg\\PATH-COMPAI\\datasets\\Barrett\\Barrett ASL 21-11-22\\'
 
-def get_all_annotated_cases():
-    dir = os.path.join(ROOT, "annotated")
+def get_all_annotated_cases(root=ROOT):
+    dir = os.path.join(root, "annotated")
 
     filepaths = {nm.split('_')[0]:{"HE":{},"p53":{}} for nm in os.listdir(dir)}
     for nm in os.listdir(dir):
