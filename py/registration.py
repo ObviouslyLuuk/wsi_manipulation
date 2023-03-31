@@ -1,5 +1,6 @@
 
 from wholeslidedata.annotation.structures import Point
+from skimage.metrics import structural_similarity as ssim
 import numpy as np
 import cv2
 from matplotlib import pyplot as plt
@@ -8,6 +9,7 @@ from .helpers import get_patch
 
 
 def get_3p_transform(annotations1, annotations2, spacing, indices=[0,1,2]):
+    """Return the transformation matrix from 3 points in annotations1 to 3 points in annotations2"""
     scale = 1/spacing*0.25
 
     # We'll only add control points and not rectangles to the HE slides but just exclude rectangles anyway
@@ -31,6 +33,7 @@ default = {
 }
 
 def get_transformation_matrix(patch1, patch2, n_features=5000, warp="affine", plotting=False):
+    """Return the transformation matrix from patch1 to patch2. Output is a tuple of 3x3 matrix for perspective and 2x3 for affine, and a message"""
     # Convert to grayscale.
     img1 = cv2.cvtColor(patch1, cv2.COLOR_BGR2GRAY)
     img2 = cv2.cvtColor(patch2, cv2.COLOR_BGR2GRAY)
@@ -44,7 +47,7 @@ def get_transformation_matrix(patch1, patch2, n_features=5000, warp="affine", pl
         ax[0].imshow(img1, cmap="gray")
         ax[1].imshow(img2, cmap="gray")
     
-    # Create ORB detector with 5000 features.
+    # Create ORB detector with n features.
     orb_detector = cv2.ORB_create(n_features)
     
     # Find keypoints and descriptors.
@@ -101,24 +104,27 @@ def get_transformation_matrix(patch1, patch2, n_features=5000, warp="affine", pl
     return transform, message
 
 
-def align(patch1, patch2, n_features=5000, warp="affine"):
+def align(patch1, patch2, n_features=5000, warp="affine", size=256, plotting=False):
     """Return patch1 transformed
-    https://www.geeksforgeeks.org/image-registration-using-opencv-python/"""  
-    height, width = patch2.shape[:2]
+    https://www.geeksforgeeks.org/image-registration-using-opencv-python/"""
     transform, message = get_transformation_matrix(patch1, patch2, n_features, warp=warp)
     determinant = np.linalg.det(transform[:2,:2])
 
     # Use this matrix to transform the
     # colored image wrt the reference image.
     if warp == "perspective":
-        return cv2.warpPerspective(patch1,
-                            transform, (width, height)), message, determinant
+        patch1_warped = cv2.warpPerspective(patch1, transform, (patch2.shape[1], patch2.shape[0]))
     elif warp == "affine":
-        return cv2.warpAffine(patch1,
-                            transform, (width, height)), message, determinant
+        patch1_warped = cv2.warpAffine     (patch1, transform, (patch2.shape[1], patch2.shape[0]))
+    
+    if not covers_bounding_box(patch1, transform, (size, size), plotting=plotting):
+        message = "NC " + message
+    
+    return center_crop_img(patch1_warped, size), message, determinant
 
 
 def get_align_transform(wsi1, wsi2, outline1, outline2, spacing=2.0, n_features=5000, warp="affine", plotting=False):
+    """Return the transformation matrix from wsi1 to wsi2"""
     patch1 = get_patch(wsi1, outline1, spacing)
     patch2 = get_patch(wsi2, outline2, spacing)
 
@@ -155,6 +161,7 @@ def get_align_transform(wsi1, wsi2, outline1, outline2, spacing=2.0, n_features=
 """Detect whether the bounding box is still covered by the warped image"""
 
 def get_warped_corners(img, homography_matrix):
+    """Return the corners of the warped image"""	
     # Get the dimensions of the image
     height, width = img.shape[:2]
 
@@ -167,7 +174,12 @@ def get_warped_corners(img, homography_matrix):
     return warped_corners
 
 
-def covers_bounding_box(img, homography_matrix, bounding_box_size):
+def covers_bounding_box(img, homography_matrix, bounding_box_size, plotting=False):
+    """Return True if the bounding box is still covered by the warped image"""
+    # If matrix is 2x3, add a row
+    if homography_matrix.shape[0] == 2:
+        homography_matrix = np.concatenate([homography_matrix, np.array([[0,0,1]])])
+
     # Get the dimensions of the image
     height, width = img.shape[:2]
     
@@ -186,6 +198,18 @@ def covers_bounding_box(img, homography_matrix, bounding_box_size):
     bb_edges = [(bb_corners[i], bb_corners[(i + 1) % 4]) for i in range(4)]
     wc_edges = [(warped_corners[i], warped_corners[(i + 1) % 4]) for i in range(4)]
 
+    if plotting:
+        img_warped = cv2.warpPerspective(img, homography_matrix, (width, height))
+        plt.figure(figsize=(10,10))
+        plt.imshow(img_warped)
+        # Plot the bounding box edges
+        for e in bb_edges:
+            plt.plot([e[0][0], e[1][0]], [e[0][1], e[1][1]], 'g')
+        # Plot the warped image edges
+        for e in wc_edges:
+            plt.plot([e[0][0], e[1][0]], [e[0][1], e[1][1]], 'r')
+        plt.show()
+
     # Check if any of the bounding box edges intersect with any of the warped image edges
     if all(not intersect(e1, e2) for e1 in bb_edges for e2 in wc_edges):
         # Check if the center of the bounding box is inside the warped image
@@ -193,7 +217,18 @@ def covers_bounding_box(img, homography_matrix, bounding_box_size):
     return False
 
 
+def center_crop_img(img, size):
+    """Center crop image to size"""
+    h, w = img.shape[:2]
+    y1 = (h - size) // 2
+    y2 = y1 + size
+    x1 = (w - size) // 2
+    x2 = x1 + size
+    return img[y1:y2, x1:x2]
+
+
 def intersect(l1, l2):
+    """Return True if the lines intersect"""
     x1, y1 = l1[0]
     x2, y2 = l1[1]
     x3, y3 = l2[0]
@@ -211,3 +246,30 @@ def intersect(l1, l2):
 
     # Check if the intersection is within the line segments
     return 0 <= ua <= 1 and 0 <= ub <= 1
+
+
+"""EVALUATION"""
+
+def evaluate_registration(template_img: np.ndarray, 
+                          registered_imgs):
+    """
+    Evaluate the registration quality of multiple registered images with respect to a template image.
+    """
+    l1_losses = []
+    ncc_values = []
+    ssim_values = []
+    
+    for registered_img in registered_imgs:
+        # Compute L1 loss between the template and registered images
+        l1_loss = np.mean(np.abs(template_img - registered_img))
+        l1_losses.append(l1_loss)
+        
+        # Compute normalized cross-correlation between the template and registered images
+        ncc = np.corrcoef(template_img.ravel(), registered_img.ravel())[0,1]
+        ncc_values.append(ncc)
+        
+        # Compute structural similarity index between the template and registered images
+        ssim_value = ssim(template_img, registered_img, data_range=registered_img.max() - registered_img.min(), channel_axis=2)
+        ssim_values.append(ssim_value)
+        
+    return l1_losses, ncc_values, ssim_values
