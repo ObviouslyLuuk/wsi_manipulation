@@ -1,0 +1,28 @@
+'ASAP-Templates',
+ 'BOLERO',
+ 'CLASSIFIED',
+ 'EMR',
+ 'GE_spectrum_normaal_en_maligne',
+ 'KERATIN-ASL-carcinoom',
+ 'LANS isyntax',                                empty
+ 'LANS-remaining -presegmentatie',              segmentation 68 HE
+ 'LANS-Tissue level',                           segmentation 42 HE
+ 'LANS_001-923',                            865 HE + P53 from old scanner, 96 HE + P53 from new scanner, RL, where are the labels?
+ 'LANS_DATA_unclassified',                      Unclassified T and RL numbers?
+ 'LANS_missing_download',                       I guess we don't know the block numbers so don't know if classified or not
+ 'low consensus cases',                         Low consensus from the LANS dir, with excel sheet
+ 'Maastricht-OUD en NIEUW',                     RBE & RM
+ 'Nieuwe ASL p53 + HE voor luuk',               12 HE-P53 recolored tiff pairs, rASL, some additional problem cases
+ 'p53 Barrett ASL 21-11-22',                    Luuk's working folder (with patch datasets etc)
+ 'p53-Luuk -ASL',                               60 HE-P53 recolored tiff pairs, RM
+ 'p53_experiment_luuk_biopsy level_no HE',  in high_consensus 294 RL P53 with XML for biopsy level label, in RBE Hans and Onno: 94 + 94 RBE P53 with XML, total 488
+ 'p53_HE_sequential',                           5 HE-P53 adjacent tiff pairs with XML, ASL, RBE
+ 'p53_rating_reader_study_no HE',               P53 + XML but no results yet?
+ 'patch_dataset_Luuk',                          HE-P53 pairs of patches
+ 'RBE-00309_HE_sme_HE_20210310_184954.tiff',
+ 'RBE_to be CLASSIFIED_BY_SYBREN',
+ 'RL-0109',
+ 'SKMS casus e-learning',
+ 'training set 1 LANS paths VSI_TIF',
+ 'training set 2 LANS paths VSI_TIF',
+ 'VLE-OCT serie 1_51'
