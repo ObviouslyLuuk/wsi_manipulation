@@ -1,5 +1,5 @@
 
-from wholeslidedata.annotation.structures import Point
+from wholeslidedata.annotation.types import PointAnnotation as Point
 from skimage.metrics import structural_similarity as ssim
 import numpy as np
 import cv2

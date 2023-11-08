@@ -1,8 +1,9 @@
 import os
 import numpy as np
-from wholeslidedata.annotation.structures import Polygon
+from wholeslidedata.annotation.types import PolygonAnnotation as Polygon
 
-ROOT = r'L:\\basic\\divg\\PATH-COMPAI\\datasets\\Barrett\\Barrett ASL 21-11-22\\'
+BARRET_ROOT = r'L:\\basic\\divg\\PATH-COMPAI\\datasets\\Barrett\\'
+ROOT        = r'L:\\basic\\divg\\PATH-COMPAI\\datasets\\Barrett\\p53 Barrett ASL 21-11-22\\'
 
 def get_all_annotated_cases(root=ROOT):
     dir = os.path.join(root, "annotated")
