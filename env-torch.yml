@@ -1,0 +1,16 @@
+name: wsi-torch
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12.0
+  - pip
+  - numpy
+  - pytorch
+  - torchvision
+  - matplotlib
+  - pip:
+    - tqdm
+    - ipykernel
+    - opencv-python
+    # pip install git+https://github.com/DIAGNijmegen/pathology-whole-slide-data@main
